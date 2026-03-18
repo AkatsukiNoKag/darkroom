@@ -1,0 +1,137 @@
+@using System.Text.Json
+@using Microsoft.AspNetCore.Antiforgery
+@model RoomPageVm
+@inject IAntiforgery Antiforgery
+@{
+    ViewData["Title"] = Model.RoomName;
+    ViewData["MainContainerClass"] = "container-fluid";
+    var csrf = Antiforgery.GetAndStoreTokens(Context).RequestToken ?? "";
+    var configJson = JsonSerializer.Serialize(new
+    {
+        roomId = Model.RoomId,
+        userId = Model.UserId,
+        isOwner = Model.IsOwner,
+        iceTransportPolicy = Model.IceTransportPolicy,
+        iceServers = Model.IceServers,
+        setAdminUrl = Url.Action("SetAdmin", "Rooms"),
+        joinHubMethod = "JoinRoom",
+        recentMessages = Model.RecentMessages,
+    }, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+}
+
+@section Head {
+    <meta name="csrf-token" content="@csrf" />
+}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+    <div class="d-flex align-items-center gap-2">
+        <img class="rounded border room-avatar-sm" src="@Model.AvatarUrl" alt="房间头像" />
+        <div>
+            <div class="h5 mb-0">@Model.RoomName</div>
+            <div class="text-secondary small">上限：@Model.MaxMembers</div>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <a id="btnRoomSettings"
+           class="btn btn-outline-secondary btn-sm @(Model.IsOwner ? "" : "d-none")"
+           asp-action="Settings"
+           asp-route-id="@Model.RoomId">房间设置</a>
+        <form asp-action="Leave" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="@Model.RoomId" />
+            <button class="btn btn-outline-danger btn-sm" type="submit">退出</button>
+        </form>
+    </div>
+</div>
+
+<div id="realtimeStatus" class="text-secondary small mb-2">实时连接：连接中...</div>
+
+<div class="row g-2">
+    <div class="col-12 col-lg-10 order-1 order-lg-2">
+        <div class="card shadow-sm">
+            <div class="card-header py-2">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div class="fw-semibold">语音 / 视频</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button id="btnToggleChat" class="btn btn-outline-secondary btn-sm" type="button">弹幕：显示</button>
+                        <button id="btnDanmakuHistory" class="btn btn-outline-secondary btn-sm" type="button">历史</button>
+                        <button id="btnToggleMic" class="btn btn-outline-primary btn-sm" type="button">麦克风：关闭</button>
+                        <button id="btnToggleCam" class="btn btn-outline-primary btn-sm" type="button">摄像头：关闭</button>
+                        <button id="btnSwitchCam" class="btn btn-outline-primary btn-sm d-none" type="button">切换摄像头</button>
+                    </div>
+                </div>
+
+                <div id="camZoomWrap" class="d-none align-items-center gap-2 mt-2">
+                    <span class="text-secondary small text-nowrap">变焦</span>
+                    <input id="camZoom" type="range" class="form-range m-0" min="1" max="1" step="0.1" value="1" />
+                </div>
+            </div>
+
+            <div class="card-body p-2 d-flex flex-column gap-2">
+                <div id="stage" class="stage position-relative">
+                    <div id="remoteVideos" class="video-grid" aria-label="视频画面">
+                        <div id="tile_local" class="video-tile participant-tile cam-off local-tile" data-user-id="@Model.UserId">
+                            <video id="localVideo" class="tile-video" autoplay muted playsinline></video>
+                            <div class="tile-placeholder">
+                                <div class="tile-initials" id="localInitials"></div>
+                            </div>
+                            <div class="tile-overlay">
+                                <div class="tile-name">我（@Model.DisplayName）</div>
+                                <div class="tile-status" id="localTileStatus"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="danmakuLayer" class="danmaku-layer" aria-hidden="true"></div>
+
+                    <div id="danmakuHistoryPanel" class="danmaku-history d-none" role="dialog" aria-label="弹幕历史" aria-hidden="true">
+                        <div class="danmaku-history-header">
+                            <div class="fw-semibold">弹幕历史</div>
+                            <button id="btnCloseDanmakuHistory" class="btn btn-outline-light btn-sm" type="button">关闭</button>
+                        </div>
+                        <div id="danmakuHistoryList" class="danmaku-history-list"></div>
+                    </div>
+
+                    <form id="chatForm" class="d-flex gap-2 chat-composer" autocomplete="off">
+                        <input id="chatInput" class="form-control form-control-sm" maxlength="500" placeholder="发弹幕..." autocomplete="off" />
+                        <button class="btn btn-primary btn-sm text-nowrap" type="submit">发送</button>
+                    </form>
+                </div>
+
+                <div class="text-secondary small">
+                    提示：多人语音/视频基于 WebRTC（浏览器点对点 Mesh），房间人数建议控制在较小范围。
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-2 order-2 order-lg-1">
+        <div class="card shadow-sm">
+            <div class="card-header py-2 d-flex align-items-center justify-content-between gap-2">
+                <div>
+                    <div class="fw-semibold">成员</div>
+                    <div class="text-secondary small d-none d-lg-block">房主可设置管理员</div>
+                </div>
+                <button class="btn btn-outline-secondary btn-sm d-lg-none"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#memberCollapse"
+                        aria-expanded="false"
+                        aria-controls="memberCollapse">成员列表</button>
+            </div>
+            <div id="memberCollapse" class="collapse d-lg-block">
+                <div class="card-body p-2">
+                    <div id="memberList" class="list-group list-group-flush small"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/signalr/signalr.min.js" asp-append-version="true"></script>
+    <script>
+        window.__darkroom = @Html.Raw(configJson);
+    </script>
+    <script src="~/js/room.js" asp-append-version="true"></script>
+}

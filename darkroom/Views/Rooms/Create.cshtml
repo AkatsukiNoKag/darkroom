@@ -1,0 +1,53 @@
+@model CreateRoomVm
+@{
+    ViewData["Title"] = "创建房间";
+}
+
+<div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="h4 mb-0">创建房间</h1>
+    <a class="btn btn-outline-secondary btn-sm" asp-action="Index">返回</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-action="Create" method="post" enctype="multipart/form-data" class="vstack gap-3">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div>
+                <label class="form-label" asp-for="Name">房间名</label>
+                <input class="form-control" asp-for="Name" maxlength="50" />
+                <div class="form-text">用于首页展示和房间内显示。</div>
+                <span class="text-danger" asp-validation-for="Name"></span>
+            </div>
+
+            <div>
+                <label class="form-label" asp-for="MaxMembers">人数上限</label>
+                <input class="form-control" asp-for="MaxMembers" type="number" min="2" max="50" />
+                <span class="text-danger" asp-validation-for="MaxMembers"></span>
+            </div>
+
+            <div>
+                <label class="form-label" asp-for="Password">房间密码（可选）</label>
+                <input class="form-control" asp-for="Password" type="password" autocomplete="new-password" maxlength="50" />
+                <span class="text-danger" asp-validation-for="Password"></span>
+            </div>
+
+            <div>
+                <label class="form-label" asp-for="Avatar">房间头像（可选）</label>
+                <input class="form-control" asp-for="Avatar" type="file" accept=".png,.jpg,.jpeg,.webp,image/*" />
+                <div class="form-text">建议小于 2MB。</div>
+                <span class="text-danger" asp-validation-for="Avatar"></span>
+            </div>
+
+            <div class="d-grid">
+                <button class="btn btn-primary" type="submit">创建并进入</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

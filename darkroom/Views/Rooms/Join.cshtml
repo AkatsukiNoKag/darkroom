@@ -1,0 +1,51 @@
+@model JoinRoomVm
+@{
+    ViewData["Title"] = "加入房间";
+}
+
+<div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+    <h1 class="h4 mb-0">加入房间</h1>
+    <a class="btn btn-outline-secondary btn-sm" asp-action="Index">返回</a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex gap-3">
+            <img class="rounded border room-avatar" src="@(string.IsNullOrWhiteSpace(Model.AvatarUrl) ? "/img/room-default.svg" : Model.AvatarUrl)" alt="房间头像" />
+            <div class="flex-grow-1">
+                <div class="h5 mb-1">@Model.RoomName</div>
+                <div class="text-secondary small">在线：@Model.OnlineCount / @Model.MaxMembers</div>
+                @if (Model.HasPassword)
+                {
+                    <div class="text-secondary small mt-1">该房间需要密码</div>
+                }
+            </div>
+        </div>
+
+        <hr />
+
+        <form asp-action="Join" method="post" class="vstack gap-3">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="RoomId" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            @if (Model.HasPassword)
+            {
+                <div>
+                    <label class="form-label" asp-for="Password">房间密码</label>
+                    <input class="form-control" asp-for="Password" type="password" autocomplete="current-password" maxlength="50" />
+                    <span class="text-danger" asp-validation-for="Password"></span>
+                </div>
+            }
+
+            <div class="d-grid">
+                <button class="btn btn-primary" type="submit">加入并进入</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

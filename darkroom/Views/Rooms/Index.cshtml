@@ -1,0 +1,63 @@
+@model RoomListVm
+@{
+    ViewData["Title"] = "房间列表";
+}
+
+<div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+    <div>
+        <h1 class="h4 mb-1">房间列表</h1>
+        <div class="text-secondary small">当前昵称：@Model.DisplayName</div>
+    </div>
+    <a class="btn btn-primary" asp-action="Create">创建房间</a>
+</div>
+
+@if (Model.Rooms.Count == 0)
+{
+    <div class="alert alert-info">还没有房间，先创建一个吧。</div>
+}
+else
+{
+    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3">
+        @foreach (var room in Model.Rooms)
+        {
+            <div class="col">
+                <div class="card h-100 shadow-sm room-card">
+                    <div class="ratio ratio-16x9 bg-dark-subtle">
+                        <img class="card-img-top object-fit-cover" src="@room.AvatarUrl" alt="房间头像" loading="lazy" />
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="d-flex align-items-start justify-content-between gap-2">
+                            <h2 class="h6 mb-0 text-truncate" title="@room.Name">@room.Name</h2>
+                            @if (room.HasPassword)
+                            {
+                                <span class="badge text-bg-secondary">加密</span>
+                            }
+                        </div>
+                        <div class="text-secondary small mt-2">
+                            在线：@room.OnlineCount / @room.MaxMembers
+                            @if (room.IsOwner)
+                            {
+                                <span class="ms-2 badge text-bg-warning">房主</span>
+                            }
+                        </div>
+                        <div class="mt-auto pt-3 d-flex gap-2">
+                            @if (room.HasJoinToken)
+                            {
+                                <a class="btn btn-success btn-sm flex-fill" asp-action="Room" asp-route-id="@room.RoomId">进入</a>
+                            }
+                            else
+                            {
+                                <a class="btn btn-outline-primary btn-sm flex-fill" asp-action="Join" asp-route-id="@room.RoomId">加入</a>
+                            }
+                            @if (room.IsOwner)
+                            {
+                                <a class="btn btn-outline-secondary btn-sm" asp-action="Settings" asp-route-id="@room.RoomId">设置</a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
